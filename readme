@@ -1,0 +1,3 @@
+Virtual Memery Implementation via C. Scripts only work if you cd into the scripts directory and then run
+./build.sh
+./run.sh
