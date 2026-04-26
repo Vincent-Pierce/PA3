@@ -10,8 +10,8 @@ int main(int argc, char* argv[]) {
     int max = 32;
 
     int pid = 0;
-    uint8_t addr = 0;
-    uint8_t op = 0;
+    int addr = 0;
+    char op = 0;
 
     printf("Number of args: %d\n", argc);
 
@@ -28,17 +28,34 @@ int main(int argc, char* argv[]) {
         addr = getAddress(line);
         op = getOperation(line);
 
+        uint8_t vpn = getVPN(addr);
+        uint16_t offset = getOffset(addr);
+        // printf("VPN: %u\t Offset: %u\n", vpn, offset);
         // [PID, 16-bit memory address, R/W]
     }
     fclose(fd);
+    // printf("Total Page Faults: %lu\t Total Disk References: %lu\t Total Dirty Page Writes: %lu\n", pageFaults, diskRefs, dirtyPageWrite);
 }
+
+
+uint8_t getVPN(int virtualAddress)
+{
+    uint8_t VPN = virtualAddress >> 9; // VPN = [0-7]
+}
+
+uint16_t getOffset(int virtualAddress)
+{
+    uint16_t offset = 0x01FF; // offset = [8-15]
+    offset &= virtualAddress;
+}
+
 
 int getPID(char* line) 
 {
     return line[0];
 }
 
-uint16_t getAddress(char* line)
+int getAddress(char* line)
 {
     char address[16] = {0};
     for(uint8_t ch = 3; ch < strlen(line); ++ch)
@@ -55,7 +72,7 @@ uint16_t getAddress(char* line)
     return atoi(address);
 }
 
-uint8_t getOperation(char* line)
+char getOperation(char* line)
 {
     return line[strlen(line)-1];
 }
