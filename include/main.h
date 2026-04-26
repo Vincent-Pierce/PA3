@@ -8,7 +8,10 @@
 #include <stdbool.h>
 
 /* Big Endian */
-#define NUM_PAGES 128
+#define NUM_PAGES   128
+#define OFFSET_FLAG 0x01FF
+#define VPN_FLAG    0xFE00
+
 int getPID(); 
 int getAddress();
 char getOperation();
@@ -20,7 +23,14 @@ FILE* openFile(const char* restrict path, const char* restrict mode);
 
 typedef struct  {
     bool dirty;
-    bool ref;
+    bool hot;
     bool valid;
-    uint16_t virtualAddresses[NUM_PAGES]; // Bits [0-7] = VPN. Bits [8-15] = Offset
-} pageTable;
+    uint8_t frameNumber; // Bit [0-4] frame number 
+} pageTableEntry;
+
+pageTableEntry pageTable1[NUM_PAGES] = {0};
+pageTableEntry pageTable2[NUM_PAGES] = {0};
+pageTableEntry pageTable3[NUM_PAGES] = {0};
+pageTableEntry pageTable4[NUM_PAGES] = {0};
+
+pageTableEntry* getPageTable(int pid);
