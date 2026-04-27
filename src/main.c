@@ -2,6 +2,7 @@
 #include "../include/main.h"
 
 int main(int argc, char* argv[]) {
+    srand(1); // Modify for the Random page replacement policy
     char line[32] = {0};
     int max = 32;
 
@@ -26,16 +27,8 @@ int main(int argc, char* argv[]) {
         uint16_t vpn = getVPN(addr);
         uint16_t offset = getOffset(addr);
         pageTableEntry* currPageTable = getPageTable(pid);
-        FIFO(pid, currPageTable, vpn, op);
-        // if(!currPageTable->valid)
-        // {
-        //     ++pageFaults;
-        // }
-        // use the vpn to index the page table array of frame numbers: frame = pageTable[vpn]
-        // combine the offset and frame number to determine physical address: uint16_t physicalAddress = (frame << 9) |= (offset);
-
-        // printf("VPN: %u\t Offset: %u\n", vpn, offset);
-        // [PID, 16-bit memory address, R/W]
+        RAND(pid, currPageTable, vpn, op);
+        // FIFO(pid, currPageTable, vpn, op);
     }
     fclose(fd);
     printf("Total Page Faults: %lu\t Total Disk References: %lu\t Total Dirty Page Writes: %lu\n", pageFaults, diskRefs, dirtyPageWrite);
@@ -139,6 +132,58 @@ FILE* openFile(const char* restrict path, const char* restrict mode)
     }
 }
 
+void RAND(int pid, pageTableEntry* pageTable, uint16_t vpn, char op)
+{
+    if(pageTable[vpn].valid)
+    {
+        if(op =='W')
+        {
+            pageTable[vpn].dirty = true;
+        }
+        return;
+    }
+    ++pageFaults;
+    ++diskRefs;
+    if(allocatedFrames < NUM_FRAMES)
+    {
+        pageTable[vpn].frameNumber = allocatedFrames;
+        pageTable[vpn].valid = true;
+        physicalMemory[allocatedFrames].pid = pid;
+        physicalMemory[allocatedFrames].vpn = vpn;
+        ++allocatedFrames;
+    }
+    else 
+    {
+        // Implementing random victim page;
+        uint8_t victimIndex = rand() % 32;
+        PhysicalFrame* victimFrame = &physicalMemory[victimIndex];
+        
+        ProcessNode* current = processListHead;
+        //Look for the process that owns the victim frame
+        while (current != NULL) {
+            if (current->pid == victimFrame->pid) {
+                break;
+            }
+            current = current->next;
+        }
+        uint16_t victimVPN = victimFrame->vpn;
+        if(current->pageTable[victimVPN].dirty)
+        {
+            ++dirtyPageWrite;
+            ++diskRefs;
+        }
+        current->pageTable[victimVPN].valid = false; // Remove from physical memory
+        current->pageTable[victimVPN].dirty = false; // Clear dirty bit
+    
+
+        // Allocate the new page to the freed frame
+        pageTable[vpn].frameNumber = fifoPointer;
+        pageTable[vpn].valid = true;
+        physicalMemory[victimIndex].pid = pid;
+        physicalMemory[victimIndex].vpn = vpn;
+    }
+}
+
 void FIFO(int pid, pageTableEntry* pageTable, uint16_t vpn, char op)
 {
     if(pageTable[vpn].valid)
@@ -182,7 +227,7 @@ void FIFO(int pid, pageTableEntry* pageTable, uint16_t vpn, char op)
             ++dirtyPageWrite;   //Write back to disk 
             ++diskRefs;
         }
-        current->pageTable[victimVPN].valid = false; // Remove from phytical memory
+        current->pageTable[victimVPN].valid = false; // Remove from physical memory
         current->pageTable[victimVPN].dirty = false; // Clear dirty bit
     
 

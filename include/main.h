@@ -37,6 +37,7 @@ uint16_t getVPN(int virtualAddress);
 uint16_t getOffset(int virtualAddress);
 FILE* openFile(const char* restrict path, const char* restrict mode);
 pageTableEntry* getPageTable(int pid);
+void RAND(int pid, pageTableEntry* pageTable, uint16_t vpn, char op);
 void FIFO(int pid, pageTableEntry* pageTable, uint16_t vpn, char op);
 
 ProcessNode* processListHead = NULL;
