@@ -31,6 +31,7 @@ int main(int argc, char* argv[]) {
         uint16_t offset = getOffset(addr);
         pageTableEntry* currPageTable = getPageTable(pid);
 
+        printf("pid: %d\t virtual address: %d\t operation: %c\n", pid, addr, op);
         if(!currPageTable->valid)
         {
             ++pageFaults;
@@ -97,11 +98,11 @@ int getPID(char* line)
 int getAddress(char* line)
 {
     char address[16] = {0};
-    for(uint8_t ch = 3; ch < strlen(line); ++ch)
+    for(uint8_t ch = 2; ch < strlen(line); ++ch)
     {
         if(isdigit(line[ch]))
         {
-           address[ch-3] = line[ch]; 
+           address[ch-2] = line[ch]; 
         }
         else 
         {
@@ -113,7 +114,14 @@ int getAddress(char* line)
 
 char getOperation(char* line)
 {
-    return line[strlen(line)-1];
+    if(line[strlen(line)-1] == '\n')
+    {
+        return line[strlen(line)-2];
+    }
+    else
+    {
+        return line[strlen(line)-1]; 
+    }
 }
 
 FILE* openFile(const char* restrict path, const char* restrict mode)
