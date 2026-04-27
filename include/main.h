@@ -12,10 +12,10 @@
 #define OFFSET_FLAG 0x01FF
 #define VPN_FLAG    0xFE00
 
-int getPID(); 
-int getAddress();
-char getOperation();
-uint8_t getVPN(int virtualAddress);
+int getPID(char* line); 
+int getAddress(char* line);
+char getOperation(char* line);
+uint16_t getVPN(int virtualAddress);
 uint16_t getOffset(int virtualAddress);
 
 FILE* openFile(const char* restrict path, const char* restrict mode);
@@ -28,9 +28,13 @@ typedef struct  {
     uint8_t frameNumber; // Bit [0-4] frame number 
 } pageTableEntry;
 
-pageTableEntry pageTable1[NUM_PAGES] = {0};
-pageTableEntry pageTable2[NUM_PAGES] = {0};
-pageTableEntry pageTable3[NUM_PAGES] = {0};
-pageTableEntry pageTable4[NUM_PAGES] = {0};
+typedef struct ProcessNode {
+    int pid;
+    pageTableEntry* pageTable;
+    struct ProcessNode* next;
+} ProcessNode;
+
+ProcessNode* processListHead = NULL;
 
 pageTableEntry* getPageTable(int pid);
+void cleanupMemory();

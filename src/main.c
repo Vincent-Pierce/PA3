@@ -6,11 +6,6 @@ int main(int argc, char* argv[]) {
     uint32_t diskRefs = 0;
     uint32_t dirtyPageWrite = 0;
 
-    pageTableEntry* table1 = pageTable1;
-    pageTableEntry* table2 = pageTable2;
-    pageTableEntry* table3 = pageTable3;
-    pageTableEntry* table4 = pageTable4;
-
     char line[32] = {0};
     int max = 32;
 
@@ -32,7 +27,7 @@ int main(int argc, char* argv[]) {
         pid = getPID(line);      // Each pid needs to allocate a Page Table
         addr = getAddress(line); 
         op = getOperation(line);
-        uint8_t vpn = getVPN(addr);
+        uint16_t vpn = getVPN(addr);
         uint16_t offset = getOffset(addr);
 
         pageTableEntry* currPageTable = getPageTable(pid);
@@ -55,36 +50,39 @@ int main(int argc, char* argv[]) {
 pageTableEntry* getPageTable(int pid)
 {
 
-        pageTableEntry* pageTable = 0;
-        switch (pid)
-        {
-            case(1) :
-            pageTable = pageTable1;
-            break;
+    ProcessNode* curr = processListHead;
+    while (curr != NULL) {
+        if (curr->pid == pid) {
+            return curr->pageTable;
+        }
+        curr = curr->next;
+    }
+    
+    ProcessNode* newNode = (ProcessNode*)malloc(sizeof(ProcessNode));
+    if (!newNode) {
+        perror("Failed to allocate");
+        exit(EXIT_FAILURE);
+    }
 
-            case(2) :
-            pageTable = pageTable2;
-            break;
-            
-            case(3) :
-            pageTable = pageTable3;
-            break;
+    newNode->pid = pid;
+    
+    newNode->pageTable = (pageTableEntry*)calloc(NUM_PAGES, sizeof(pageTableEntry));
+    if (!newNode->pageTable) {
+        perror("Failed to allocate pageTable");
+        exit(EXIT_FAILURE);
+    }
 
-            case(4) :
-            pageTable = pageTable4;
-            break;
+    newNode->next = processListHead;
+    processListHead = newNode;
 
-            default:
-            printf("Failed to get a valid PID\n");
-            pageTable = 0;
-            break;
-        } 
-        return pageTable;
+    printf("Dynamically allocated new page table for PID: %d\n", pid);
+
+    return newNode->pageTable;
 }
 
-uint8_t getVPN(int virtualAddress)
+uint16_t getVPN(int virtualAddress)
 {
-    uint8_t VPN = VPN_FLAG; // VPN = [0-7]
+    uint16_t VPN = VPN_FLAG; // VPN = [0-7]
     VPN &= virtualAddress;
 }
 
