@@ -29,7 +29,6 @@ int main(int argc, char* argv[]) {
         op = getOperation(line);
         uint16_t vpn = getVPN(addr);
         uint16_t offset = getOffset(addr);
-
         pageTableEntry* currPageTable = getPageTable(pid);
 
         if(!currPageTable->valid)
@@ -49,7 +48,6 @@ int main(int argc, char* argv[]) {
 
 pageTableEntry* getPageTable(int pid)
 {
-
     ProcessNode* curr = processListHead;
     while (curr != NULL) {
         if (curr->pid == pid) {
@@ -75,8 +73,6 @@ pageTableEntry* getPageTable(int pid)
     newNode->next = processListHead;
     processListHead = newNode;
 
-    printf("Dynamically allocated new page table for PID: %d\n", pid);
-
     return newNode->pageTable;
 }
 
@@ -95,7 +91,7 @@ uint16_t getOffset(int virtualAddress)
 
 int getPID(char* line) 
 {
-    return line[0];
+    return line[0]  - '0';
 }
 
 int getAddress(char* line)
