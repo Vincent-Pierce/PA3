@@ -11,16 +11,7 @@
 #define NUM_PAGES   128
 #define OFFSET_FLAG 0x01FF
 #define VPN_FLAG    0xFE00
-
-int getPID(char* line); 
-int getAddress(char* line);
-char getOperation(char* line);
-uint16_t getVPN(int virtualAddress);
-uint16_t getOffset(int virtualAddress);
-
-FILE* openFile(const char* restrict path, const char* restrict mode);
-
-
+#define NUM_FRAMES  32
 typedef struct  {
     bool dirty;
     bool hot;
@@ -34,7 +25,24 @@ typedef struct ProcessNode {
     struct ProcessNode* next;
 } ProcessNode;
 
-ProcessNode* processListHead = NULL;
+typedef struct {
+    int pid;
+    uint16_t vpn;
+} PhysicalFrame;
 
+int getPID(char* line); 
+int getAddress(char* line);
+char getOperation(char* line);
+uint16_t getVPN(int virtualAddress);
+uint16_t getOffset(int virtualAddress);
+FILE* openFile(const char* restrict path, const char* restrict mode);
 pageTableEntry* getPageTable(int pid);
-void cleanupMemory();
+void FIFO(int pid, pageTableEntry* pageTable, uint16_t vpn, char op);
+
+ProcessNode* processListHead = NULL;
+PhysicalFrame physicalMemory[NUM_FRAMES] = {0};
+uint32_t pageFaults = 0;
+uint32_t diskRefs = 0;
+uint32_t dirtyPageWrite = 0;
+int allocatedFrames = 0;
+int fifoPointer = 0;

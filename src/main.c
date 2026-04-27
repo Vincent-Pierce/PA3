@@ -2,10 +2,6 @@
 #include "../include/main.h"
 
 int main(int argc, char* argv[]) {
-    uint32_t pageFaults = 0;
-    uint32_t diskRefs = 0;
-    uint32_t dirtyPageWrite = 0;
-
     char line[32] = {0};
     int max = 32;
 
@@ -30,12 +26,11 @@ int main(int argc, char* argv[]) {
         uint16_t vpn = getVPN(addr);
         uint16_t offset = getOffset(addr);
         pageTableEntry* currPageTable = getPageTable(pid);
-
-        printf("pid: %d\t virtual address: %d\t operation: %c\n", pid, addr, op);
-        if(!currPageTable->valid)
-        {
-            ++pageFaults;
-        }
+        FIFO(pid, currPageTable, vpn, op);
+        // if(!currPageTable->valid)
+        // {
+        //     ++pageFaults;
+        // }
         // use the vpn to index the page table array of frame numbers: frame = pageTable[vpn]
         // combine the offset and frame number to determine physical address: uint16_t physicalAddress = (frame << 9) |= (offset);
 
@@ -43,7 +38,7 @@ int main(int argc, char* argv[]) {
         // [PID, 16-bit memory address, R/W]
     }
     fclose(fd);
-    // printf("Total Page Faults: %lu\t Total Disk References: %lu\t Total Dirty Page Writes: %lu\n", pageFaults, diskRefs, dirtyPageWrite);
+    printf("Total Page Faults: %lu\t Total Disk References: %lu\t Total Dirty Page Writes: %lu\n", pageFaults, diskRefs, dirtyPageWrite);
 }
 
 
@@ -79,14 +74,18 @@ pageTableEntry* getPageTable(int pid)
 
 uint16_t getVPN(int virtualAddress)
 {
-    uint16_t VPN = VPN_FLAG; // VPN = [0-7]
-    VPN &= virtualAddress;
+    // uint16_t VPN = VPN_FLAG; // VPN = [0-7]
+    // VPN &= virtualAddress;
+    uint16_t VPN = (virtualAddress & VPN_FLAG) >> 9; 
+    return VPN;
 }
 
 uint16_t getOffset(int virtualAddress)
 {
-    uint16_t offset = OFFSET_FLAG; // offset = [8-15]
-    offset &= virtualAddress;
+    // uint16_t offset = OFFSET_FLAG; // offset = [8-15]
+    // offset &= virtualAddress;
+    uint16_t offset = (virtualAddress & OFFSET_FLAG); 
+    return offset;
 }
 
 
@@ -137,5 +136,62 @@ FILE* openFile(const char* restrict path, const char* restrict mode)
     {
         printf("File opened successfully\n");
         return fd;
+    }
+}
+
+void FIFO(int pid, pageTableEntry* pageTable, uint16_t vpn, char op)
+{
+    if(pageTable[vpn].valid)
+    {
+        if(op == 'W')
+        {
+            pageTable[vpn].dirty = true;
+        }
+        
+        return;
+    }
+
+    ++pageFaults;
+    ++diskRefs;
+    
+    if(allocatedFrames < NUM_FRAMES)
+    {
+        pageTable[vpn].frameNumber = allocatedFrames;
+        pageTable[vpn].valid = true;
+        physicalMemory[allocatedFrames].pid = pid;
+        physicalMemory[allocatedFrames].vpn = vpn;
+        ++allocatedFrames;
+    }
+    else
+    {
+        PhysicalFrame* victimFrame = &physicalMemory[fifoPointer];
+
+        ProcessNode* current = processListHead;
+        //Look for the process that owns the victim frame
+        while (current != NULL) {
+            if (current->pid == victimFrame->pid) {
+                break;
+            }
+            current = current->next;
+        }
+
+        uint16_t victimVPN = victimFrame->vpn;
+
+        if(current->pageTable[victimVPN].dirty)
+        {
+            ++dirtyPageWrite;   //Write back to disk 
+            ++diskRefs;
+        }
+        current->pageTable[victimVPN].valid = false; // Remove from phytical memory
+        current->pageTable[victimVPN].dirty = false; // Clear dirty bit
+    
+
+        // Allocate the new page to the freed frame
+        pageTable[vpn].frameNumber = fifoPointer;
+        pageTable[vpn].valid = true;
+        physicalMemory[fifoPointer].pid = pid;
+        physicalMemory[fifoPointer].vpn = vpn;
+
+        fifoPointer = (fifoPointer + 1) % NUM_FRAMES; // Move FIFO pointer
     }
 }
