@@ -6,6 +6,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdbool.h>
+#include <time.h>
 
 /* Big Endian */
 #define NUM_PAGES   128
@@ -14,7 +15,7 @@
 #define NUM_FRAMES  32
 typedef struct  {
     bool dirty;
-    bool hot;
+    uint32_t time;
     bool valid;
     uint8_t frameNumber; // Bit [0-4] frame number 
 } pageTableEntry;
@@ -41,6 +42,7 @@ pageTableEntry* getPageTable(int pid);
 void RAND(int pid, pageTableEntry* pageTable, uint16_t vpn, char op);
 void FIFO(int pid, pageTableEntry* pageTable, uint16_t vpn, char op);
 void LRU(int pid, pageTableEntry* pageTable, uint16_t vpn, char op);
+int findLRUVictim();
 ProcessNode* processListHead = NULL;
 PhysicalFrame physicalMemory[NUM_FRAMES] = {0};
 uint32_t pageFaults = 0;
@@ -48,4 +50,4 @@ uint32_t diskRefs = 0;
 uint32_t dirtyPageWrite = 0;
 int allocatedFrames = 0;
 int fifoPointer = 0;
-int lruPointer = 0;
+uint32_t accessTime = 0;
