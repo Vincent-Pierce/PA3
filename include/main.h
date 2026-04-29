@@ -18,7 +18,6 @@ typedef struct  {
     uint32_t time;
     bool hot;
     bool valid;
-    uint8_t frameNumber; // Bit [0-4] frame number 
 } pageTableEntry;
 
 typedef struct ProcessNode {
@@ -45,7 +44,6 @@ void FIFO(int pid, pageTableEntry* pageTable, uint16_t vpn, char op);
 void LRU(int pid, pageTableEntry* pageTable, uint16_t vpn, char op);
 int findLRUVictim();
 void PER(int pid, pageTableEntry* pageTable, uint16_t vpn, char op);
-void replacePhysicalFrame(int pid, pageTableEntry* pageTable, uint16_t vpn, int victimIndex);
 ProcessNode* processListHead = NULL;
 PhysicalFrame physicalMemory[NUM_FRAMES] = {0};
 uint32_t pageFaults = 0;
