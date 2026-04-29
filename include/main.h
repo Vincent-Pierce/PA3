@@ -30,6 +30,7 @@ typedef struct {
     uint16_t vpn;
 } PhysicalFrame;
 
+
 int getPID(char* line); 
 int getAddress(char* line);
 char getOperation(char* line);
@@ -39,7 +40,7 @@ FILE* openFile(const char* restrict path, const char* restrict mode);
 pageTableEntry* getPageTable(int pid);
 void RAND(int pid, pageTableEntry* pageTable, uint16_t vpn, char op);
 void FIFO(int pid, pageTableEntry* pageTable, uint16_t vpn, char op);
-
+void LRU(int pid, pageTableEntry* pageTable, uint16_t vpn, char op);
 ProcessNode* processListHead = NULL;
 PhysicalFrame physicalMemory[NUM_FRAMES] = {0};
 uint32_t pageFaults = 0;
@@ -47,3 +48,4 @@ uint32_t diskRefs = 0;
 uint32_t dirtyPageWrite = 0;
 int allocatedFrames = 0;
 int fifoPointer = 0;
+int lruPointer = 0;

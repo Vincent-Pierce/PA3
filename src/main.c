@@ -2,7 +2,7 @@
 #include "../include/main.h"
 
 int main(int argc, char* argv[]) {
-    srand(1); // Modify for the Random page replacement policy
+    srand(1432); // Modify for the Random page replacement policy
     char line[32] = {0};
     int max = 32;
 
@@ -27,11 +27,12 @@ int main(int argc, char* argv[]) {
         uint16_t vpn = getVPN(addr);
         uint16_t offset = getOffset(addr);
         pageTableEntry* currPageTable = getPageTable(pid);
-        RAND(pid, currPageTable, vpn, op);
+        // RAND(pid, currPageTable, vpn, op);
         // FIFO(pid, currPageTable, vpn, op);
+        LRU(pid, currPageTable, vpn, op);
     }
     fclose(fd);
-    printf("Total Page Faults: %lu\t Total Disk References: %lu\t Total Dirty Page Writes: %lu\n", pageFaults, diskRefs, dirtyPageWrite);
+    printf("Total Page Faults: %u\t Total Disk References: %u\t Total Dirty Page Writes: %u\n", pageFaults, diskRefs, dirtyPageWrite);
 }
 
 
@@ -155,7 +156,7 @@ void RAND(int pid, pageTableEntry* pageTable, uint16_t vpn, char op)
     else 
     {
         // Implementing random victim page;
-        uint8_t victimIndex = rand() % 32;
+        uint8_t victimIndex = rand() % NUM_FRAMES;
         PhysicalFrame* victimFrame = &physicalMemory[victimIndex];
         
         ProcessNode* current = processListHead;
@@ -177,7 +178,7 @@ void RAND(int pid, pageTableEntry* pageTable, uint16_t vpn, char op)
     
 
         // Allocate the new page to the freed frame
-        pageTable[vpn].frameNumber = fifoPointer;
+        pageTable[vpn].frameNumber = victimIndex;
         pageTable[vpn].valid = true;
         physicalMemory[victimIndex].pid = pid;
         physicalMemory[victimIndex].vpn = vpn;
@@ -209,7 +210,7 @@ void FIFO(int pid, pageTableEntry* pageTable, uint16_t vpn, char op)
     }
     else
     {
-        PhysicalFrame* victimFrame = &physicalMemory[fifoPointer];
+        PhysicalFrame* victimFrame = &physicalMemory[lruPointer];
 
         ProcessNode* current = processListHead;
         //Look for the process that owns the victim frame
@@ -229,6 +230,7 @@ void FIFO(int pid, pageTableEntry* pageTable, uint16_t vpn, char op)
         }
         current->pageTable[victimVPN].valid = false; // Remove from physical memory
         current->pageTable[victimVPN].dirty = false; // Clear dirty bit
+
     
 
         // Allocate the new page to the freed frame
@@ -238,5 +240,75 @@ void FIFO(int pid, pageTableEntry* pageTable, uint16_t vpn, char op)
         physicalMemory[fifoPointer].vpn = vpn;
 
         fifoPointer = (fifoPointer + 1) % NUM_FRAMES; // Move FIFO pointer
+    }
+}
+
+void LRU(int pid, pageTableEntry* pageTable, uint16_t vpn, char op)
+{
+    if(pageTable[vpn].valid)
+    {
+        if(op =='W')
+        {
+            pageTable[vpn].dirty = true;
+        }
+        pageTable[vpn].hot = true; // as soon as a page is brought into MM its hot
+        return;
+    }
+    ++pageFaults;
+    ++diskRefs;
+    if(allocatedFrames < NUM_FRAMES)
+    {
+        pageTable[vpn].frameNumber = allocatedFrames;
+        pageTable[vpn].valid = true;
+        pageTable[vpn].hot = true;
+        physicalMemory[allocatedFrames].pid = pid;
+        physicalMemory[allocatedFrames].vpn = vpn;
+        ++allocatedFrames;
+    }
+    else 
+    {
+        while(1)
+        {
+
+            // Implementing LRU policy;
+            PhysicalFrame* victimFrame = &physicalMemory[lruPointer]; 
+
+            ProcessNode* current = processListHead;
+            //Look for the process that owns the victim frame
+            while (current != NULL) {
+                if (current->pid == victimFrame->pid) {
+                    break;
+                }
+                current = current->next;
+            }
+            uint16_t victimVPN = victimFrame->vpn;
+            if(current->pageTable[victimVPN].hot)
+            {
+                current->pageTable[victimVPN].hot = false;
+                lruPointer = (lruPointer+1) % NUM_FRAMES;
+            }
+            else
+            {
+                // Found victim
+            
+                if(current->pageTable[victimVPN].dirty)
+                {
+                    ++dirtyPageWrite;
+                    ++diskRefs;
+                }
+                current->pageTable[victimVPN].valid = false; // Remove from physical memory
+                current->pageTable[victimVPN].dirty = false; // Clear dirty bit
+            
+
+                // Allocate the new page to the freed frame
+                pageTable[vpn].frameNumber = lruPointer;
+                pageTable[vpn].valid = true;
+                physicalMemory[lruPointer].pid = pid;
+                physicalMemory[lruPointer].vpn = vpn;
+
+                lruPointer = (lruPointer + 1) % NUM_FRAMES; // Move lru pointer
+                break;
+            }
+        }
     }
 }
