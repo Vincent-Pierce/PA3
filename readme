@@ -1,3 +1,9 @@
 Virtual Memery Implementation via C. Scripts only work if you cd into the scripts directory and then run
 ./build.sh
-./run.sh
+./run.sh ${ALGO}
+
+replace ${ALGO} with:
+  '1' for RAND
+  '2' for FIFO
+  '3' for LRU
+  '4' for PER
