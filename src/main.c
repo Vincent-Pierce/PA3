@@ -19,6 +19,31 @@ int main(int argc, char* argv[]) {
 
     FILE* fd = openFile(argv[1], "r");
     
+    void (*algorithm)(int, pageTableEntry*, uint16_t, char);
+    int operation = atoi(argv[2]);
+
+    switch (operation)
+    {
+    case 1:
+        algorithm = RAND;
+        printf("Using RAND algorithm\n");
+        break;
+    case 2:
+        algorithm = FIFO;
+        printf("Using FIFO algorithm\n");
+        break;
+    case 3:
+        algorithm = LRU;
+        printf("Using LRU algorithm\n");
+        break;
+    case 4:
+        algorithm = PER;
+        printf("Using PER algorithm\n");
+        break;
+    default:
+        break;
+    }
+
     while(fgets(line, max, fd) != NULL)
     {
         pid = getPID(line);      // Each pid needs to allocate a Page Table
@@ -27,10 +52,7 @@ int main(int argc, char* argv[]) {
         uint16_t vpn = getVPN(addr);
         uint16_t offset = getOffset(addr);
         pageTableEntry* currPageTable = getPageTable(pid);
-        RAND(pid, currPageTable, vpn, op);
-        // FIFO(pid, currPageTable, vpn, op);
-        // LRU(pid, currPageTable, vpn, op);
-        // PER(pid, currPageTable, vpn, op);
+        algorithm(pid, currPageTable, vpn, op);
     }
     fclose(fd);
     printf("Total Page Faults: %u\t Total Disk References: %u\t Total Dirty Page Writes: %u\n", pageFaults, diskRefs, dirtyPageWrite);
