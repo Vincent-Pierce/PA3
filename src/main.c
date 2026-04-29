@@ -30,6 +30,7 @@ int main(int argc, char* argv[]) {
         RAND(pid, currPageTable, vpn, op);
         // FIFO(pid, currPageTable, vpn, op);
         // LRU(pid, currPageTable, vpn, op);
+        PER(pid, currPageTable, vpn, op);
     }
     fclose(fd);
     printf("Total Page Faults: %u\t Total Disk References: %u\t Total Dirty Page Writes: %u\n", pageFaults, diskRefs, dirtyPageWrite);
@@ -212,7 +213,6 @@ void FIFO(int pid, pageTableEntry* pageTable, uint16_t vpn, char op)
         pageTableEntry* current = getPageTable(victimFrame->pid);
 
         uint16_t victimVPN = victimFrame->vpn;
-
         if(current[victimVPN].dirty)
         {
             ++dirtyPageWrite;   //Write back to disk 
@@ -220,7 +220,6 @@ void FIFO(int pid, pageTableEntry* pageTable, uint16_t vpn, char op)
         }
         current[victimVPN].valid = false; // Remove from physical memory
         current[victimVPN].dirty = false; // Clear dirty bit
-
     
 
         // Allocate the new page to the freed frame
@@ -319,4 +318,88 @@ int findLRUVictim()
     }
 
     return victimFrame;
+}
+
+void PER(int pid, pageTableEntry* pageTable, uint16_t vpn, char op)
+{
+    ++globalTime;
+    // Reset hot bits every 200 references
+    if (globalTime % 200 == 0) {
+        for(int idx = 0; idx < allocatedFrames; ++idx)
+        {
+            PhysicalFrame* currentFrame = &physicalMemory[idx];
+            uint16_t currentVPN = currentFrame->vpn;
+            pageTableEntry * currentPT = getPageTable(currentFrame->pid);
+            currentPT[currentVPN].hot = false;
+        }
+    }
+
+    pageTable[vpn].hot = true; // Set to true every reference.
+
+    if(pageTable[vpn].valid)
+    {
+        if(op == 'W')
+        {
+            pageTable[vpn].dirty = true;
+        }
+        return;
+    }
+
+    ++pageFaults;
+    ++diskRefs;
+    
+    // First, look for an unused page
+    if(allocatedFrames < NUM_FRAMES)
+    {
+        pageTable[vpn].frameNumber = allocatedFrames;
+        pageTable[vpn].valid = true;
+        physicalMemory[allocatedFrames].pid = pid;
+        physicalMemory[allocatedFrames].vpn = vpn;
+        ++allocatedFrames;
+        return;
+    }
+
+    // First run refernce bit = 0 and dirty bit = 0
+    // Second run reference bit = 0 and dirty bit = 1
+    // Third run reference bit = 1 and dirty bit = 0
+    // Fourth run reference bit = 1 and dirty bit = 1
+    for(int reference = 0; reference <= 1; ++reference)
+    {
+        for(int dirty=0; dirty<=1; dirty++)
+        {
+            for(int i=0; i<NUM_FRAMES; ++i)
+            {
+                PhysicalFrame* currentFrame = &physicalMemory[i];
+                uint16_t currentVPN = currentFrame->vpn;
+                pageTableEntry * currentPT = getPageTable(currentFrame->pid);
+                if(currentPT[currentVPN].hot == reference && currentPT[currentVPN].dirty == dirty)
+                {
+                    replacePhysicalFrame(pid, pageTable, vpn, i);
+                    return;
+                }
+            }
+        }
+    }
+}
+
+void replacePhysicalFrame(int pid, pageTableEntry* pageTable, uint16_t vpn, int victimIndex)
+{
+    PhysicalFrame* victimFrame = &physicalMemory[victimIndex];
+
+    pageTableEntry* current = getPageTable(victimFrame->pid);
+
+    uint16_t victimVPN = victimFrame->vpn;
+    if(current[victimVPN].dirty)
+    {
+        ++dirtyPageWrite;   //Write back to disk 
+        ++diskRefs;
+    }
+    current[victimVPN].valid = false; // Remove from physical memory
+    current[victimVPN].dirty = false; // Clear dirty bit
+
+    // Allocate the new page to the freed frame
+    pageTable[vpn].frameNumber = victimIndex;
+    pageTable[vpn].valid = true;
+    physicalMemory[victimIndex].pid = pid;
+    physicalMemory[victimIndex].vpn = vpn;
 }

@@ -16,6 +16,7 @@
 typedef struct  {
     bool dirty;
     uint32_t time;
+    bool hot;
     bool valid;
     uint8_t frameNumber; // Bit [0-4] frame number 
 } pageTableEntry;
@@ -43,6 +44,8 @@ void RAND(int pid, pageTableEntry* pageTable, uint16_t vpn, char op);
 void FIFO(int pid, pageTableEntry* pageTable, uint16_t vpn, char op);
 void LRU(int pid, pageTableEntry* pageTable, uint16_t vpn, char op);
 int findLRUVictim();
+void PER(int pid, pageTableEntry* pageTable, uint16_t vpn, char op);
+void replacePhysicalFrame(int pid, pageTableEntry* pageTable, uint16_t vpn, int victimIndex);
 ProcessNode* processListHead = NULL;
 PhysicalFrame physicalMemory[NUM_FRAMES] = {0};
 uint32_t pageFaults = 0;
@@ -51,3 +54,5 @@ uint32_t dirtyPageWrite = 0;
 int allocatedFrames = 0;
 int fifoPointer = 0;
 uint32_t accessTime = 0;
+int lruPointer = 0;
+int globalTime = 0;
