@@ -168,6 +168,7 @@ void RAND(int pid, pageTableEntry* pageTable, uint16_t vpn, char op)
     {
         pageTable[vpn].valid = true;
         pageTable[vpn].frameN = allocatedFrames;
+        pageTable[vpn].dirty = (op == 'W');
         physicalMemory[allocatedFrames].pid = pid;
         physicalMemory[allocatedFrames].vpn = vpn;
         ++allocatedFrames;
@@ -216,6 +217,7 @@ void FIFO(int pid, pageTableEntry* pageTable, uint16_t vpn, char op)
     {
         pageTable[vpn].valid = true;
         pageTable[vpn].frameN = allocatedFrames;
+        pageTable[vpn].dirty = (op == 'W');
         physicalMemory[allocatedFrames].pid = pid;
         physicalMemory[allocatedFrames].vpn = vpn;
         ++allocatedFrames;
@@ -263,6 +265,7 @@ void LRU(int pid, pageTableEntry* pageTable, uint16_t vpn, char op)
     if(allocatedFrames < NUM_FRAMES)
     {
         pageTable[vpn].valid = true;
+        pageTable[vpn].dirty = (op == 'W');
         pageTable[vpn].time = accessTime;
         pageTable[vpn].frameN = allocatedFrames;
         physicalMemory[allocatedFrames].pid = pid;
@@ -364,6 +367,7 @@ void PER(int pid, pageTableEntry* pageTable, uint16_t vpn, char op)
     {
         pageTable[vpn].valid = true;
         pageTable[vpn].frameN = allocatedFrames;
+        pageTable[vpn].dirty = (op == 'W');
         physicalMemory[allocatedFrames].pid = pid;
         physicalMemory[allocatedFrames].vpn = vpn;
         ++allocatedFrames;
