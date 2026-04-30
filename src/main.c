@@ -2,7 +2,7 @@
 #include "../include/main.h"
 
 int main(int argc, char* argv[]) {
-    srand(1432); // Modify for the Random page replacement policy
+    srand(2); // Modify for the Random page replacement policy
     char line[32] = {0};
     int max = 32;
 
@@ -167,6 +167,7 @@ void RAND(int pid, pageTableEntry* pageTable, uint16_t vpn, char op)
     if(allocatedFrames < NUM_FRAMES)
     {
         pageTable[vpn].valid = true;
+        pageTable[vpn].frameN = allocatedFrames;
         physicalMemory[allocatedFrames].pid = pid;
         physicalMemory[allocatedFrames].vpn = vpn;
         ++allocatedFrames;
@@ -176,7 +177,6 @@ void RAND(int pid, pageTableEntry* pageTable, uint16_t vpn, char op)
         // Implementing random victim page;
         uint8_t victimIndex = rand() % NUM_FRAMES;
         PhysicalFrame* victimFrame = &physicalMemory[victimIndex];
-        
         pageTableEntry* current = getPageTable(victimFrame->pid); 
 
         uint16_t victimVPN = victimFrame->vpn;
@@ -191,6 +191,7 @@ void RAND(int pid, pageTableEntry* pageTable, uint16_t vpn, char op)
         // Allocate the new page to the freed frame
         pageTable[vpn].valid = true;
         pageTable[vpn].dirty = (op == 'W');
+        pageTable[vpn].frameN = victimIndex;
         physicalMemory[victimIndex].pid = pid;
         physicalMemory[victimIndex].vpn = vpn;
     }
@@ -214,6 +215,7 @@ void FIFO(int pid, pageTableEntry* pageTable, uint16_t vpn, char op)
     if(allocatedFrames < NUM_FRAMES)
     {
         pageTable[vpn].valid = true;
+        pageTable[vpn].frameN = allocatedFrames;
         physicalMemory[allocatedFrames].pid = pid;
         physicalMemory[allocatedFrames].vpn = vpn;
         ++allocatedFrames;
@@ -237,6 +239,7 @@ void FIFO(int pid, pageTableEntry* pageTable, uint16_t vpn, char op)
         // Allocate the new page to the freed frame
         pageTable[vpn].valid = true;
         pageTable[vpn].dirty = (op == 'W');
+        pageTable[vpn].frameN = fifoPointer;
         physicalMemory[fifoPointer].pid = pid;
         physicalMemory[fifoPointer].vpn = vpn;
         fifoPointer = (fifoPointer + 1) % NUM_FRAMES; // Move FIFO pointer
@@ -261,6 +264,7 @@ void LRU(int pid, pageTableEntry* pageTable, uint16_t vpn, char op)
     {
         pageTable[vpn].valid = true;
         pageTable[vpn].time = accessTime;
+        pageTable[vpn].frameN = allocatedFrames;
         physicalMemory[allocatedFrames].pid = pid;
         physicalMemory[allocatedFrames].vpn = vpn;
         ++allocatedFrames;
@@ -288,6 +292,7 @@ void LRU(int pid, pageTableEntry* pageTable, uint16_t vpn, char op)
         pageTable[vpn].valid = true;
         pageTable[vpn].time = accessTime;
         pageTable[vpn].dirty = (op == 'W');
+        pageTable[vpn].frameN = victimIndex;
         physicalMemory[victimIndex].pid = pid;
         physicalMemory[victimIndex].vpn = vpn;
     
@@ -358,6 +363,7 @@ void PER(int pid, pageTableEntry* pageTable, uint16_t vpn, char op)
     if(allocatedFrames < NUM_FRAMES)
     {
         pageTable[vpn].valid = true;
+        pageTable[vpn].frameN = allocatedFrames;
         physicalMemory[allocatedFrames].pid = pid;
         physicalMemory[allocatedFrames].vpn = vpn;
         ++allocatedFrames;
@@ -395,6 +401,7 @@ void PER(int pid, pageTableEntry* pageTable, uint16_t vpn, char op)
                     // Allocate the new page to the freed frame
                     pageTable[vpn].valid = true;
                     pageTable[vpn].dirty = (op == 'W');
+                    pageTable[vpn].frameN = victimFrame;
                     physicalMemory[i].pid = pid;
                     physicalMemory[i].vpn = vpn;
 

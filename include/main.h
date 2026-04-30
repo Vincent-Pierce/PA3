@@ -18,6 +18,7 @@ typedef struct  {
     uint32_t time;
     bool hot;
     bool valid;
+    uint8_t frameN;
 } pageTableEntry;
 
 typedef struct ProcessNode {
